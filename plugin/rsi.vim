@@ -33,7 +33,7 @@ function! s:ctrl_u()
 endfunction
 
 " motion
-inoremap        <C-A> <C-O>^
+inoremap        <C-A> <Home>
 cnoremap        <C-A> <Home>
 inoremap <expr> <C-B> getline('.')=~'^\s*$'&&col('.')>strlen(getline('.'))?"0\<Lt>C-D>\<Lt>Esc>kJs":"\<Lt>Left>"
 cnoremap        <C-B> <Left>
