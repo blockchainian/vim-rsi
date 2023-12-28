@@ -1,6 +1,5 @@
-" rsi.vim - Readline style insertion
-" Maintainer:   Tim Pope
-" Version:      1.0
+" rsi.vim - Disfigured line editing
+" Version:      0.0.1
 " GetLatestVimScripts: 4359 1 :AutoInstall: rsi.vim
 
 if exists("g:loaded_rsi") || v:version < 700 || &cp
@@ -13,109 +12,42 @@ if &ttimeoutlen == -1
   set ttimeoutlen=50
 endif
 
-inoremap        <C-A> <C-O>^
-inoremap   <C-X><C-A> <C-A>
-cnoremap        <C-A> <Home>
-cnoremap   <C-X><C-A> <C-A>
-
-inoremap <expr> <C-B> getline('.')=~'^\s*$'&&col('.')>strlen(getline('.'))?"0\<Lt>C-D>\<Lt>Esc>kJs":"\<Lt>Left>"
-cnoremap        <C-B> <Left>
-
-inoremap <expr> <C-D> col('.')>strlen(getline('.'))?"\<Lt>C-D>":"\<Lt>Del>"
-cnoremap <expr> <C-D> getcmdpos()>strlen(getcmdline())?"\<Lt>C-D>":"\<Lt>Del>"
-
-inoremap <expr> <C-E> col('.')>strlen(getline('.'))<bar><bar>pumvisible()?"\<Lt>C-E>":"\<Lt>End>"
-
-inoremap <expr> <C-F> col('.')>strlen(getline('.'))?"\<Lt>C-F>":"\<Lt>Right>"
-cnoremap <expr> <C-F> getcmdpos()>strlen(getcmdline())?&cedit:"\<Lt>Right>"
-
-function! s:transpose() abort
+function! s:ctrl_x()
+  let line = getcmdline()
+  let len = strlen(line)
   let pos = getcmdpos()
-  if getcmdtype() =~# '[?/]'
-    return "\<C-T>"
-  elseif pos > strlen(getcmdline())
-    let pre = "\<Left>"
-    let pos -= 1
-  elseif pos <= 1
-    let pre = "\<Right>"
-    let pos += 1
-  else
-    let pre = ""
-  endif
-  return pre . "\<BS>\<Right>".matchstr(getcmdline()[0 : pos-2], '.$')
-endfunction
+  let count = len - pos + 1
 
-cnoremap <expr> <C-T> <SID>transpose()
+  if pos > 0
+    let @+ = strpart(line, pos - 1)
+  endif
+
+  return pos <= len ? repeat("\<Del>", count) : ""
+endfunction
 
 function! s:ctrl_u()
   if getcmdpos() > 1
-    let @- = getcmdline()[:getcmdpos()-2]
+    let @+ = getcmdline()[:getcmdpos()-2]
   endif
   return "\<C-U>"
 endfunction
 
+" motion
+inoremap        <C-A> <C-O>^
+cnoremap        <C-A> <Home>
+inoremap <expr> <C-B> getline('.')=~'^\s*$'&&col('.')>strlen(getline('.'))?"0\<Lt>C-D>\<Lt>Esc>kJs":"\<Lt>Left>"
+cnoremap        <C-B> <Left>
+inoremap <expr> <C-F> col('.')>strlen(getline('.'))?"\<Lt>C-F>":"\<Lt>Right>"
+cnoremap <expr> <C-F> getcmdpos()>strlen(getcmdline())?&cedit:"\<Lt>Right>"
+inoremap <expr> <C-E> col('.')>strlen(getline('.'))<bar><bar>pumvisible()?"\<Lt>C-E>":"\<Lt>End>"
+noremap!        <C-H> <S-Left>
+noremap!        <C-L> <S-Right>
+
+" editing
+inoremap <C-D> <C-O>dw
+cnoremap <C-D> <S-Right><Right><C-W>
+inoremap <C-X> <C-O>D
+cnoremap <expr> <C-X> <SID>ctrl_x()
 cnoremap <expr> <C-U> <SID>ctrl_u()
-cnoremap <expr> <C-Y> pumvisible() ? "\<C-Y>" : "\<C-R>-"
-
-if exists('g:rsi_no_meta')
-  finish
-endif
-
-if &encoding ==# 'latin1' && has('gui_running') && !empty(findfile('plugin/sensible.vim', escape(&rtp, ' ')))
-  set encoding=utf-8
-endif
-
-function! s:MapMeta() abort
-  noremap!        <M-b> <S-Left>
-  noremap!        <M-f> <S-Right>
-  noremap!        <M-d> <C-O>dw
-  cnoremap        <M-d> <S-Right><C-W>
-  noremap!        <M-n> <Down>
-  noremap!        <M-p> <Up>
-  noremap!        <M-BS> <C-W>
-  noremap!        <M-C-h> <C-W>
-endfunction
-
-if has("gui_running") || has('nvim')
-  call s:MapMeta()
-else
-  silent! exe "set <F29>=\<Esc>b"
-  silent! exe "set <F30>=\<Esc>f"
-  silent! exe "set <F31>=\<Esc>d"
-  silent! exe "set <F32>=\<Esc>n"
-  silent! exe "set <F33>=\<Esc>p"
-  silent! exe "set <F34>=\<Esc>\<C-?>"
-  silent! exe "set <F35>=\<Esc>\<C-H>"
-  noremap!        <F29> <S-Left>
-  noremap!        <F30> <S-Right>
-  noremap!        <F31> <C-O>dw
-  cnoremap        <F31> <S-Right><C-W>
-  noremap!        <F32> <Down>
-  noremap!        <F33> <Up>
-  noremap!        <F34> <C-W>
-  noremap!        <F35> <C-W>
-  if has('terminal')
-    tnoremap      <F29> <Esc>b
-    tnoremap      <F30> <Esc>f
-    tnoremap      <F31> <Esc>d
-    tnoremap      <F32> <Esc>n
-    tnoremap      <F33> <Esc>p
-    tnoremap      <F34> <Esc><C-?>
-    tnoremap      <F35> <Esc><C-H>
-  endif
-  if &encoding ==# 'utf-8' && (has('unix') || has('win32'))
-    try
-      set encoding=cp949
-      call s:MapMeta()
-    finally
-      set encoding=utf-8
-    endtry
-  else
-    augroup rsi_gui
-      autocmd!
-      autocmd GUIEnter * call s:MapMeta()
-    augroup END
-  endif
-endif
-
-" vim:set et sw=2:
+inoremap <expr> <C-Y> "\<C-R>+"
+cnoremap <expr> <C-Y> pumvisible() ? "\<C-Y>" : "\<C-R>+"
