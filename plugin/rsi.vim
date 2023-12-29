@@ -12,24 +12,35 @@ if &ttimeoutlen == -1
   set ttimeoutlen=50
 endif
 
-function! s:ctrl_x()
-  let line = getcmdline()
-  let len = strlen(line)
-  let pos = getcmdpos()
-  let count = len - pos + 1
+function! s:ctrl_d(line, pos)
+  let len = strlen(a:line)
+  let next = matchend(a:line, '\>\s*', a:pos)
+  let count = next - a:pos + 1  " adjust for [0,1]-based indexes
 
-  if pos > 0
-    let @+ = strpart(line, pos - 1)
+  if a:pos > 0
+    let @+ = strpart(a:line, a:pos - 1, count)
   endif
 
-  return pos <= len ? repeat("\<Del>", count) : ""
+  return a:pos <= len ? repeat("\<Del>", count) : ""
 endfunction
 
-function! s:ctrl_u()
-  if getcmdpos() > 1
-    let @+ = getcmdline()[:getcmdpos()-2]
+function! s:ctrl_u(line, pos)
+  if a:pos > 1
+    " hack for prompt
+    let @+ = substitute(a:line[:a:pos-2], '^\s*❭\s*', '', '')
   endif
   return "\<C-U>"
+endfunction
+
+function! s:ctrl_x(line, pos)
+  let len = strlen(a:line)
+  let count = len - a:pos + 1
+
+  if a:pos > 0
+    let @+ = strpart(a:line, a:pos - 1)
+  endif
+
+  return a:pos <= len ? repeat("\<Del>", count) : ""
 endfunction
 
 " motion
@@ -44,10 +55,11 @@ noremap!        <C-H> <S-Left>
 noremap!        <C-L> <S-Right>
 
 " editing
-inoremap <C-D> <C-O>dw
-cnoremap <C-D> <S-Right><Right><C-W>
-inoremap <C-X> <C-O>D
-cnoremap <expr> <C-X> <SID>ctrl_x()
-cnoremap <expr> <C-U> <SID>ctrl_u()
+inoremap <expr> <C-D> <SID>ctrl_d(getline('.'), col('.'))
+cnoremap <expr> <C-D> <SID>ctrl_d(getcmdline(), getcmdpos())
+inoremap <expr> <C-X> <SID>ctrl_x(getline('.'), col('.'))
+cnoremap <expr> <C-X> <SID>ctrl_x(getcmdline(), getcmdpos())
+inoremap <expr> <C-U> <SID>ctrl_u(getline('.'), col('.'))
+cnoremap <expr> <C-U> <SID>ctrl_u(getcmdline(), getcmdpos())
 inoremap <expr> <C-Y> "\<C-R>+"
 cnoremap <expr> <C-Y> pumvisible() ? "\<C-Y>" : "\<C-R>+"
