@@ -12,16 +12,42 @@ if &ttimeoutlen == -1
   set ttimeoutlen=50
 endif
 
-function! s:ctrl_d(line, pos)
-  let len = strlen(a:line)
-  let next = matchend(a:line, '\>\s*', a:pos)
-  let count = next - a:pos + 1  " adjust for [0,1]-based indexes
-
-  if a:pos > 0
-    let @+ = strpart(a:line, a:pos - 1, count)
+function! s:ctrl_a()
+  let mode = mode()
+  if mode ==# 'n'
+    return '^'
+  elseif mode ==# 'c'
+    return "\<Home>"
   endif
 
-  return a:pos <= len ? repeat("\<Del>", count) : ""
+  let pos = col('.')
+  let hol = max([match(getline('.'), '\S\zs'), 1])
+
+  if pos > hol
+    return repeat("\<Left>", pos - hol)
+  else
+    return repeat("\<Right>", hol - pos)
+  endif
+endfunction
+
+function! s:ctrl_e()
+  if col('.') >strlen(getline('.')) || pumvisible()
+    return "\<C-E>"
+  endif
+  return "\<End>"
+endfunction
+
+function! s:ctrl_d(line, pos)
+  let len = strlen(a:line)
+  if a:pos > len
+    return "\<Del>"
+  endif
+
+  let next = matchend(a:line, '\>\s*', a:pos)
+  let count = max([next - a:pos + 1, 1])
+
+  let @+ = strpart(a:line, a:pos - 1, count)
+  return repeat("\<Del>", count)
 endfunction
 
 function! s:ctrl_u(line, pos)
@@ -44,15 +70,26 @@ function! s:ctrl_x(line, pos)
 endfunction
 
 " motion
-inoremap        <C-A> <Home>
+nnoremap <expr> <C-A> <SID>ctrl_a()
+inoremap <expr> <C-A> <SID>ctrl_a()
 cnoremap        <C-A> <Home>
-inoremap <expr> <C-B> getline('.')=~'^\s*$'&&col('.')>strlen(getline('.'))?"0\<Lt>C-D>\<Lt>Esc>kJs":"\<Lt>Left>"
+inoremap <expr> <C-B> getline('.')=~'^\s*$'&&col('.')>strlen(getline('.'))?"0\<C-D>\<Esc>kJs":"\<Left>"
 cnoremap        <C-B> <Left>
-inoremap <expr> <C-F> col('.')>strlen(getline('.'))?"\<Lt>C-F>":"\<Lt>Right>"
-cnoremap <expr> <C-F> getcmdpos()>strlen(getcmdline())?&cedit:"\<Lt>Right>"
-inoremap <expr> <C-E> col('.')>strlen(getline('.'))<bar><bar>pumvisible()?"\<Lt>C-E>":"\<Lt>End>"
-noremap!        <C-H> <S-Left>
-noremap!        <C-L> <S-Right>
+inoremap <expr> <C-F> col('.')>strlen(getline('.'))?"\<C-F>":"\<Right>"
+cnoremap <expr> <C-F> getcmdpos()>strlen(getcmdline())?&cedit:"\<Right>"
+nnoremap <expr> <C-E> <SID>ctrl_e()
+inoremap <expr> <C-E> <SID>ctrl_e()
+inoremap        <C-J> <Down>
+cnoremap        <C-J> <Down>
+inoremap        <C-K> <Up>
+cnoremap        <C-K> <Up>
+" only if keymodel != startsel
+nnoremap        <C-H> <S-Left>
+inoremap        <C-H> <S-Left>
+cnoremap        <C-H> <S-Left>
+nnoremap        <C-L> <S-Right>
+inoremap        <C-L> <S-Right>
+cnoremap        <C-L> <S-Right>
 
 " editing
 inoremap <expr> <C-D> <SID>ctrl_d(getline('.'), col('.'))
