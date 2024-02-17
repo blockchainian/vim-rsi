@@ -12,6 +12,17 @@ if &ttimeoutlen == -1
   set ttimeoutlen=50
 endif
 
+function! s:reverse(s)
+  let len = strlen(a:s)
+  let rs = ''
+
+  for i in range(len(a:s) - 1, 0, -1)
+    let rs = rs . a:s[i]
+  endfor
+
+  return rs
+endfunction
+
 function! s:ctrl_a()
   let mode = mode()
   if mode ==# 'n'
@@ -37,17 +48,47 @@ function! s:ctrl_e()
   return "\<End>"
 endfunction
 
-function! s:ctrl_d(line, pos)
+function! s:ctrl_w(line, pos)
+  let idx = a:pos - 1
   let len = strlen(a:line)
-  if a:pos > len
-    return "\<Del>"
+  if idx < 0
+    return ''
   endif
 
-  let next = matchend(a:line, '\>\s*', a:pos)
-  let count = max([next - a:pos + 1, 1])
+  let rline = s:reverse(a:line)
+  let ridx = len - idx
+  let prev = len - matchend(rline, '\>\s*', ridx) - 1
+  let count = max([idx - prev - 1, 1])
 
-  let @+ = strpart(a:line, a:pos - 1, count)
+  let @+ = strpart(a:line, prev + 1, count)
+  return repeat("\<Bs>", count)
+endfunction
+
+function! s:alt_d(line, pos)
+  let idx = a:pos - 1
+  let len = strlen(a:line)
+  if idx >= len
+    return ''
+  endif
+
+  let next = matchend(a:line, '\>\s*', idx)
+  let count = max([next - idx, 1])
+
+  let @+ = strpart(a:line, idx, count)
   return repeat("\<Del>", count)
+endfunction
+
+function! s:alt_f(line, pos)
+  let idx = a:pos - 1
+  let len = strlen(a:line)
+  if idx >= len
+    return ''
+  endif
+
+  let next = matchend(a:line, '\>\s*', idx)
+  let count = max([next - idx, 1])
+
+  return repeat("\<Right>", count)
 endfunction
 
 function! s:ctrl_u(line, pos)
@@ -58,7 +99,7 @@ function! s:ctrl_u(line, pos)
   return "\<C-U>"
 endfunction
 
-function! s:ctrl_x(line, pos)
+function! <SID>ctrl_k(line, pos)
   let len = strlen(a:line)
   let count = len - a:pos + 1
 
@@ -73,29 +114,31 @@ endfunction
 nnoremap <expr> <C-A> <SID>ctrl_a()
 inoremap <expr> <C-A> <SID>ctrl_a()
 cnoremap        <C-A> <Home>
-inoremap <expr> <C-B> getline('.')=~'^\s*$'&&col('.')>strlen(getline('.'))?"0\<C-D>\<Esc>kJs":"\<Left>"
-cnoremap        <C-B> <Left>
-inoremap <expr> <C-F> col('.')>strlen(getline('.'))?"\<C-F>":"\<Right>"
-cnoremap <expr> <C-F> getcmdpos()>strlen(getcmdline())?&cedit:"\<Right>"
 nnoremap <expr> <C-E> <SID>ctrl_e()
 inoremap <expr> <C-E> <SID>ctrl_e()
-inoremap        <C-J> <Down>
-cnoremap        <C-J> <Down>
-inoremap        <C-K> <Up>
-cnoremap        <C-K> <Up>
+nnoremap        <C-B> <Left>
+inoremap        <C-B> <Left>
+cnoremap        <C-B> <Left>
+nnoremap        <C-F> <Right>
+inoremap        <C-F> <Right>
+cnoremap        <C-F> <Right>
 " only if keymodel != startsel
-nnoremap        <C-H> <S-Left>
-inoremap        <C-H> <S-Left>
-cnoremap        <C-H> <S-Left>
-nnoremap        <C-L> <S-Right>
-inoremap        <C-L> <S-Right>
-cnoremap        <C-L> <S-Right>
+nnoremap        <M-b> <S-Left>
+inoremap        <M-b> <S-Left>
+cnoremap        <M-b> <S-Left>
+nnoremap <expr> <M-f> <SID>alt_f(getline('.'), col('.'))
+inoremap <expr> <M-f> <SID>alt_f(getline('.'), col('.'))
+cnoremap <expr> <M-f> <SID>alt_f(getcmdline(), getcmdpos())
 
 " editing
-inoremap <expr> <C-D> <SID>ctrl_d(getline('.'), col('.'))
-cnoremap <expr> <C-D> <SID>ctrl_d(getcmdline(), getcmdpos())
-inoremap <expr> <C-X> <SID>ctrl_x(getline('.'), col('.'))
-cnoremap <expr> <C-X> <SID>ctrl_x(getcmdline(), getcmdpos())
+inoremap <expr> <C-W> <SID>ctrl_w(getline('.'), col('.'))
+cnoremap <expr> <C-W> <SID>ctrl_w(getcmdline(), getcmdpos())
+inoremap <expr> <M-BS> <SID>ctrl_w(getline('.'), col('.'))
+cnoremap <expr> <M-BS> <SID>ctrl_w(getcmdline(), getcmdpos())
+inoremap <expr> <M-d> <SID>alt_d(getline('.'), col('.'))
+cnoremap <expr> <M-d> <SID>alt_d(getcmdline(), getcmdpos())
+inoremap <expr> <C-K> <SID>ctrl_k(getline('.'), col('.'))
+cnoremap <expr> <C-K> <SID>ctrl_k(getcmdline(), getcmdpos())
 inoremap <expr> <C-U> <SID>ctrl_u(getline('.'), col('.'))
 cnoremap <expr> <C-U> <SID>ctrl_u(getcmdline(), getcmdpos())
 inoremap <expr> <C-Y> "\<C-R>+"
