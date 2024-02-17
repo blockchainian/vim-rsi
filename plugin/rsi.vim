@@ -93,13 +93,17 @@ endfunction
 
 function! s:ctrl_u(line, pos)
   if a:pos > 1
-    " hack for prompt
-    let @+ = substitute(a:line[:a:pos-2], '^\s*❭\s*', '', '')
+    " hack for prompts
+    if a:line[:1] == '❭ '
+      let @+ = a:line[2:a:pos-2]
+    else
+      let @+ = a:line[:a:pos-2]
+    endif
   endif
   return "\<C-U>"
 endfunction
 
-function! <SID>ctrl_k(line, pos)
+function! RSI_ctrl_k(line, pos)
   let len = strlen(a:line)
   let count = len - a:pos + 1
 
@@ -107,7 +111,7 @@ function! <SID>ctrl_k(line, pos)
     let @+ = strpart(a:line, a:pos - 1)
   endif
 
-  return a:pos <= len ? repeat("\<Del>", count) : ""
+  return a:pos <= len ? repeat("\<Del>", count) : ''
 endfunction
 
 " motion
@@ -137,8 +141,8 @@ inoremap <expr> <M-BS> <SID>ctrl_w(getline('.'), col('.'))
 cnoremap <expr> <M-BS> <SID>ctrl_w(getcmdline(), getcmdpos())
 inoremap <expr> <M-d> <SID>alt_d(getline('.'), col('.'))
 cnoremap <expr> <M-d> <SID>alt_d(getcmdline(), getcmdpos())
-inoremap <expr> <C-K> <SID>ctrl_k(getline('.'), col('.'))
-cnoremap <expr> <C-K> <SID>ctrl_k(getcmdline(), getcmdpos())
+inoremap <expr> <C-K> RSI_ctrl_k(getline('.'), col('.'))
+cnoremap <expr> <C-K> RSI_ctrl_k(getcmdline(), getcmdpos())
 inoremap <expr> <C-U> <SID>ctrl_u(getline('.'), col('.'))
 cnoremap <expr> <C-U> <SID>ctrl_u(getcmdline(), getcmdpos())
 inoremap <expr> <C-Y> "\<C-R>+"
