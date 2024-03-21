@@ -57,11 +57,15 @@ function! s:ctrl_w(line, pos)
 
   let rline = s:reverse(a:line)
   let ridx = len - idx
-  let prev = len - matchend(rline, '\>\s*', ridx) - 1
+  let prev = len - matchend(rline, '\>', ridx) - 1
   let count = max([idx - prev - 1, 1])
 
   let @+ = strpart(a:line, prev + 1, count)
   return repeat("\<Bs>", count)
+endfunction
+
+function! s:ctrl_d(line, pos)
+  return "\<Del>"
 endfunction
 
 function! s:alt_d(line, pos)
@@ -103,6 +107,7 @@ function! s:ctrl_u(line, pos)
   return "\<C-U>"
 endfunction
 
+" Exported for init.vim
 function! RSI_ctrl_k(line, pos)
   let len = strlen(a:line)
   let count = len - a:pos + 1
@@ -139,6 +144,8 @@ inoremap <expr> <C-W> <SID>ctrl_w(getline('.'), col('.'))
 cnoremap <expr> <C-W> <SID>ctrl_w(getcmdline(), getcmdpos())
 inoremap <expr> <M-BS> <SID>ctrl_w(getline('.'), col('.'))
 cnoremap <expr> <M-BS> <SID>ctrl_w(getcmdline(), getcmdpos())
+inoremap <expr> <C-D> <SID>ctrl_d(getline('.'), col('.'))
+cnoremap <expr> <C-D> <SID>ctrl_d(getcmdline(), getcmdpos())
 inoremap <expr> <M-d> <SID>alt_d(getline('.'), col('.'))
 cnoremap <expr> <M-d> <SID>alt_d(getcmdline(), getcmdpos())
 inoremap <expr> <C-K> RSI_ctrl_k(getline('.'), col('.'))
