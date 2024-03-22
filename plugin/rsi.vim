@@ -97,9 +97,9 @@ endfunction
 
 function! s:ctrl_u(line, pos)
   if a:pos > 1
-    " hack for prompts
-    if a:line[:1] == '❭ '
-      let @+ = a:line[2:a:pos-2]
+    " NOTE: workaround for Telescope prompts
+    if a:line[:3] == '❭ '
+      let @+ = a:line[4:a:pos-2]
     else
       let @+ = a:line[:a:pos-2]
     endif
